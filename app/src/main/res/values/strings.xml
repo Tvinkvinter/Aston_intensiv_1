@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">MusicPlayer</string>
+
+    <string name="accessibility_play_pause_btn">Play/Pause song</string>
+    <string name="accessibility_next_btn">Next song</string>
+    <string name="accessibility_prev_btn">Prev song</string>
 </resources>
