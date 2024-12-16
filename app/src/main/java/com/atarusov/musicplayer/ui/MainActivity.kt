@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
 
     private val notificationActionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.getStringExtra("action") ?: return
+            val action = intent.getStringExtra(ACTION_EXTRA_KEY) ?: return
             when (PlayerService.Action.valueOf(action)) {
                 PlayerService.Action.NOTIFICATION_PLAY -> viewModel.onClickPlayPauseButton()
                 PlayerService.Action.NOTIFICATION_PAUSE -> viewModel.onClickPlayPauseButton()
@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         LocalBroadcastManager.getInstance(applicationContext).registerReceiver(
-            notificationActionReceiver, IntentFilter("PLAYER_ACTION")
+            notificationActionReceiver, IntentFilter(PlayerService.PLAYER_ACTION)
         )
 
         lifecycleScope.launch {
@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
     private fun sendPlayCommandToPlayer(song: Song) {
         Intent(applicationContext, PlayerService::class.java).also {
             it.action = PlayerService.Action.PLAY.toString()
-            it.putExtra("song", song)
+            it.putExtra(SONG_EXTRA_KEY, song)
             startService(it)
         }
     }
@@ -132,4 +132,10 @@ class MainActivity : AppCompatActivity() {
         LocalBroadcastManager.getInstance(applicationContext)
             .unregisterReceiver(notificationActionReceiver)
     }
+
+    companion object {
+        const val ACTION_EXTRA_KEY = "action"
+        const val SONG_EXTRA_KEY = "song"
+    }
+
 }

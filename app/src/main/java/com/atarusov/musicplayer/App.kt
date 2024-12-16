@@ -4,13 +4,14 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import com.atarusov.musicplayer.service.PlayerService
 
 class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
         val channel = NotificationChannel(
-            "player_channel",
+            PlayerService.CHANNEL_ID,
             "Player Channel",
             NotificationManager.IMPORTANCE_LOW
         )

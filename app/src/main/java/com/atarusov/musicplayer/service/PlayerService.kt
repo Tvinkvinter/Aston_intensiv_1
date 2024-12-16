@@ -15,6 +15,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.atarusov.musicplayer.R
 import com.atarusov.musicplayer.data.Song
 import com.atarusov.musicplayer.domain.AudioPlayer
+import com.atarusov.musicplayer.ui.MainActivity
 
 class PlayerService : Service() {
 
@@ -27,7 +28,7 @@ class PlayerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             Action.PLAY.toString() -> {
-                currentSong = IntentCompat.getParcelableExtra(intent, "song", Song::class.java)
+                currentSong = IntentCompat.getParcelableExtra(intent, MainActivity.SONG_EXTRA_KEY, Song::class.java)
                 if (currentSong != null) play(currentSong!!)
                 else throw IllegalArgumentException("Required data 'song_resource_id' is missing in the Intent extras")
             }
@@ -41,6 +42,7 @@ class PlayerService : Service() {
     }
 
     private fun initialize() {
+        isInitialized = true
         startForeground(1, createNotification(true))
     }
 
@@ -84,7 +86,7 @@ class PlayerService : Service() {
         )
         val nextAction = Notification.Action.Builder(
             Icon.createWithResource(this, R.drawable.ic_notification_next_24),
-            "Next",
+            getString(R.string.accessibility_next_btn),
             nextPendingIntent
         ).build()
 
@@ -97,7 +99,7 @@ class PlayerService : Service() {
         )
         val prevAction = Notification.Action.Builder(
             Icon.createWithResource(this, R.drawable.ic_notification_prev_24),
-            "Prev",
+            getString(R.string.accessibility_prev_btn),
             prevPendingIntent
         ).build()
 
@@ -111,7 +113,7 @@ class PlayerService : Service() {
             )
             Notification.Action.Builder(
                 Icon.createWithResource(this, R.drawable.ic_notification_pause_24),
-                "Pause",
+                getString(R.string.accessibility_play_pause_btn),
                 pausePendingIntent
             ).build()
         } else {
@@ -124,11 +126,11 @@ class PlayerService : Service() {
             )
             Notification.Action.Builder(
                 Icon.createWithResource(this, R.drawable.ic_notification_play_24),
-                "Play",
+                getString(R.string.accessibility_play_pause_btn),
                 playPendingIntent
             ).build()
         }
-        return Notification.Builder(this, "player_channel")
+        return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(currentSong?.name)
             .setContentText(currentSong?.author)
@@ -144,13 +146,18 @@ class PlayerService : Service() {
     }
 
     private fun sendEventToViewModel(action: Action) {
-        val intent = Intent("PLAYER_ACTION").apply {
-            putExtra("action", action.toString())
+        val intent = Intent(PLAYER_ACTION).apply {
+            putExtra(MainActivity.ACTION_EXTRA_KEY, action.toString())
         }
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     enum class Action {
         PLAY, PAUSE, STOP, NOTIFICATION_PLAY, NOTIFICATION_PAUSE, NOTIFICATION_PREV, NOTIFICATION_NEXT
+    }
+
+    companion object {
+        const val PLAYER_ACTION = "PLAYER_ACTION"
+        const val CHANNEL_ID = "player_channel"
     }
 }
