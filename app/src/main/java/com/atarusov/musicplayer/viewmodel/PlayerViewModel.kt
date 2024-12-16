@@ -27,30 +27,37 @@ class PlayerViewModel : ViewModel() {
     val playerCommands: SharedFlow<PlayerCommand> = _playerCommands
 
     fun onClickPlayPauseButton() {
-        _isPlaying.value = !isPlaying.value
-        viewModelScope.launch {
-            _playerCommands.emit(
-                if (isPlaying.value) PlayerCommand.Play(song.value)
-                else PlayerCommand.Pause
-            )
-        }
+        if (!_isPlaying.value) playCurrentSong()
+        else pause()
     }
 
     fun onClickNextButton() {
         var newSongId = song.value.id + 1
         if (newSongId >= Playlist.playlist.size) newSongId = 0
         _song.value = Playlist.playlist[newSongId]
-        viewModelScope.launch {
-            _playerCommands.emit(PlayerCommand.Play(song.value))
-        }
+        playCurrentSong()
     }
 
     fun onClickPrevButton() {
         var newSongId = song.value.id - 1
         if (newSongId < 0) newSongId = Playlist.playlist.size - 1
         _song.value = Playlist.playlist[newSongId]
+        playCurrentSong()
+    }
+
+    private fun playCurrentSong() {
+        _isPlaying.value = true
         viewModelScope.launch {
             _playerCommands.emit(PlayerCommand.Play(song.value))
+        }
+    }
+
+    private fun pause() {
+        _isPlaying.value = false
+        viewModelScope.launch {
+            _playerCommands.emit(
+                PlayerCommand.Pause
+            )
         }
     }
 }
