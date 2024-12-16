@@ -33,7 +33,6 @@ class AudioPlayer(
     fun stop() {
         player?.stop()
         player?.release()
-        currentSong = null
         player = null
     }
 }
