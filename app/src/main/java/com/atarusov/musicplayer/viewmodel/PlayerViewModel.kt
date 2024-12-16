@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 sealed class PlayerCommand {
-    data class PlayPause(val isPlaying: Boolean) : PlayerCommand()
-    data class SetNewSong(val song: Song) : PlayerCommand()
+    data class Play(val song: Song) : PlayerCommand()
+    data object Pause : PlayerCommand()
 }
 
 class PlayerViewModel : ViewModel() {
@@ -29,28 +29,28 @@ class PlayerViewModel : ViewModel() {
     fun onClickPlayPauseButton() {
         _isPlaying.value = !isPlaying.value
         viewModelScope.launch {
-            _playerCommands.emit(PlayerCommand.PlayPause(isPlaying.value))
+            _playerCommands.emit(
+                if (isPlaying.value) PlayerCommand.Play(song.value)
+                else PlayerCommand.Pause
+            )
         }
     }
 
     fun onClickNextButton() {
         var newSongId = song.value.id + 1
         if (newSongId >= Playlist.playlist.size) newSongId = 0
-
-        setNewSong(Playlist.playlist[newSongId])
+        _song.value = Playlist.playlist[newSongId]
+        viewModelScope.launch {
+            _playerCommands.emit(PlayerCommand.Play(song.value))
+        }
     }
 
     fun onClickPrevButton() {
         var newSongId = song.value.id - 1
         if (newSongId < 0) newSongId = Playlist.playlist.size - 1
-
-        setNewSong(Playlist.playlist[newSongId])
-    }
-
-    private fun setNewSong(song: Song) {
-        _song.value = song
+        _song.value = Playlist.playlist[newSongId]
         viewModelScope.launch {
-            _playerCommands.emit(PlayerCommand.SetNewSong(song))
+            _playerCommands.emit(PlayerCommand.Play(song.value))
         }
     }
 }

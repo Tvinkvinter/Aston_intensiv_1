@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        initPlayer(viewModel.song.value)
         LocalBroadcastManager.getInstance(applicationContext).registerReceiver(
             notificationActionReceiver, IntentFilter("PLAYER_ACTION")
         )
@@ -74,8 +73,8 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.playerCommands.collect { command ->
                 when (command) {
-                    is PlayerCommand.PlayPause -> sendPlayPauseCommandToPlayer(command.isPlaying)
-                    is PlayerCommand.SetNewSong -> sendSetNewSongCommandToPlayer(command.song)
+                    is PlayerCommand.Play -> sendPlayCommandToPlayer(viewModel.song.value)
+                    is PlayerCommand.Pause -> sendPauseCommandToPlayer()
                 }
             }
         }
@@ -113,32 +112,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initPlayer(song: Song) {
+    private fun sendPlayCommandToPlayer(song: Song) {
         Intent(applicationContext, PlayerService::class.java).also {
-            it.action = PlayerService.Action.INIT.toString()
-            it.putExtra("song_resource_id", song.resId)
+            it.action = PlayerService.Action.PLAY.toString()
+            it.putExtra("song", song)
             startService(it)
         }
     }
 
-    private fun sendPlayPauseCommandToPlayer(isPLaying: Boolean) {
-        if (isPLaying) {
-            Intent(applicationContext, PlayerService::class.java).also {
-                it.action = PlayerService.Action.PLAY.toString()
-                startService(it)
-            }
-        } else {
-            Intent(applicationContext, PlayerService::class.java).also {
-                it.action = PlayerService.Action.PAUSE.toString()
-                startService(it)
-            }
-        }
-    }
-
-    private fun sendSetNewSongCommandToPlayer(song: Song) {
+    private fun sendPauseCommandToPlayer() {
         Intent(applicationContext, PlayerService::class.java).also {
-            it.action = PlayerService.Action.SET.toString()
-            it.putExtra("song_resource_id", song.resId)
+            it.action = PlayerService.Action.PAUSE.toString()
             startService(it)
         }
     }

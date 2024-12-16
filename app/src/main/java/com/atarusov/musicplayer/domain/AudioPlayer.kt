@@ -2,37 +2,38 @@ package com.atarusov.musicplayer.domain
 
 import android.content.Context
 import android.media.MediaPlayer
+import com.atarusov.musicplayer.data.Song
 
 class AudioPlayer(
     private val context: Context
 ) {
 
     private var player: MediaPlayer? = null
-    private var isPlaying: Boolean = false
+    private var currentSong: Song? = null
 
     private fun createPlayer(audioResourceId: Int) {
         player = MediaPlayer.create(context, audioResourceId)
     }
 
-    fun play() {
+    fun play(song: Song) {
+        if (currentSong == null || currentSong != song) setNewSong(song)
         player?.start()
-        isPlaying = true
+    }
+
+    private fun setNewSong(song: Song) {
+        currentSong = song
+        stop()
+        createPlayer(song.resId)
     }
 
     fun pause() {
         player?.pause()
-        isPlaying = false
-    }
-
-    fun setNewSong(audioResourceId: Int) {
-        stop()
-        createPlayer(audioResourceId)
-        if (isPlaying) play()
     }
 
     fun stop() {
         player?.stop()
         player?.release()
+        currentSong = null
         player = null
     }
 }

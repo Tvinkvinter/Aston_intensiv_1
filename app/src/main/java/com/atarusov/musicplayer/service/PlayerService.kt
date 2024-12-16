@@ -10,8 +10,10 @@ import android.graphics.drawable.Icon
 import android.os.IBinder
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.IntentCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.atarusov.musicplayer.R
+import com.atarusov.musicplayer.data.Song
 import com.atarusov.musicplayer.domain.AudioPlayer
 
 class PlayerService : Service() {
@@ -23,16 +25,13 @@ class PlayerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            Action.INIT.toString() -> {
-                if (!isInitialized) {
-                    setNewSong(intent.getIntExtra("song_resource_id", -1))
-                    isInitialized = true
-                }
+            Action.PLAY.toString() -> {
+                val song = IntentCompat.getParcelableExtra(intent, "song", Song::class.java)
+                if (song != null) play(song)
+                else throw IllegalArgumentException("Required data 'song_resource_id' is missing in the Intent extras")
             }
 
-            Action.PLAY.toString() -> play()
             Action.PAUSE.toString() -> pause()
-            Action.SET.toString() -> setNewSong(intent.getIntExtra("song_resource_id", -1))
             Action.STOP.toString() -> stopSelf()
             else -> sendEventToViewModel(Action.valueOf(intent?.action ?: ""))
         }
@@ -40,26 +39,27 @@ class PlayerService : Service() {
         return START_NOT_STICKY
     }
 
-
-    private fun play() {
+    private fun initialize() {
         startForeground(1, createNotification(true))
+    }
 
-        audioPlayer.play()
+    private fun play(song: Song) {
+        if (!isInitialized) initialize()
+
+        audioPlayer.play(song)
+
+        val notification = createNotification(isPlaying = true)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            == PackageManager.PERMISSION_GRANTED
+        ) NotificationManagerCompat.from(this).notify(1, notification)
     }
 
     private fun pause() {
         audioPlayer.pause()
         val notification = createNotification(isPlaying = false)
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            == PackageManager.PERMISSION_GRANTED
         ) NotificationManagerCompat.from(this).notify(1, notification)
-    }
-
-    private fun setNewSong(songResourceId: Int) {
-        if (songResourceId != -1) audioPlayer.setNewSong(songResourceId)
-        else throw IllegalArgumentException("Required data 'song_resource_id' is missing in the Intent extras")
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -150,6 +150,6 @@ class PlayerService : Service() {
     }
 
     enum class Action {
-        INIT, PLAY, PAUSE, SET, STOP, NOTIFICATION_PLAY, NOTIFICATION_PAUSE, NOTIFICATION_PREV, NOTIFICATION_NEXT
+        PLAY, PAUSE, STOP, NOTIFICATION_PLAY, NOTIFICATION_PAUSE, NOTIFICATION_PREV, NOTIFICATION_NEXT
     }
 }
