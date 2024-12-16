@@ -1,7 +1,10 @@
 package com.atarusov.musicplayer.ui
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
@@ -11,18 +14,34 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.atarusov.musicplayer.viewmodel.PlayerCommand
-import com.atarusov.musicplayer.service.PlayerService
-import com.atarusov.musicplayer.viewmodel.PlayerViewModel
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.atarusov.musicplayer.R
 import com.atarusov.musicplayer.data.Song
 import com.atarusov.musicplayer.databinding.ActivityMainBinding
+import com.atarusov.musicplayer.service.PlayerService
+import com.atarusov.musicplayer.viewmodel.PlayerCommand
+import com.atarusov.musicplayer.viewmodel.PlayerViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: PlayerViewModel by viewModels()
+
+    private val notificationActionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.getStringExtra("action") ?: return
+            when (PlayerService.Action.valueOf(action)) {
+                PlayerService.Action.NOTIFICATION_PLAY -> viewModel.onClickPlayPauseButton()
+                PlayerService.Action.NOTIFICATION_PAUSE -> viewModel.onClickPlayPauseButton()
+                PlayerService.Action.NOTIFICATION_PREV -> viewModel.onClickPrevButton()
+                PlayerService.Action.NOTIFICATION_NEXT -> viewModel.onClickNextButton()
+                else -> throw IllegalArgumentException(
+                    "Unsupported action: $action in PlayerService notification handler"
+                )
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +55,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         initPlayer(viewModel.song.value)
+        LocalBroadcastManager.getInstance(applicationContext).registerReceiver(
+            notificationActionReceiver, IntentFilter("PLAYER_ACTION")
+        )
 
         lifecycleScope.launch {
             viewModel.isPlaying.collect { isPlaying ->
@@ -50,8 +72,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            viewModel.playerCommands.collect{ command ->
-                when(command) {
+            viewModel.playerCommands.collect { command ->
+                when (command) {
                     is PlayerCommand.PlayPause -> sendPlayPauseCommandToPlayer(command.isPlaying)
                     is PlayerCommand.SetNewSong -> sendSetNewSongCommandToPlayer(command.song)
                 }
@@ -85,9 +107,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun setPlaying(isPLaying: Boolean = false) {
         if (isPLaying) {
-            binding.btnPlayPause.setImageResource(R.drawable.ic_pause_24)
+            binding.btnPlayPause.setImageResource(R.drawable.ic_pause_32)
         } else {
-            binding.btnPlayPause.setImageResource(R.drawable.ic_play_24)
+            binding.btnPlayPause.setImageResource(R.drawable.ic_play_32)
         }
     }
 
@@ -102,7 +124,7 @@ class MainActivity : AppCompatActivity() {
     private fun sendPlayPauseCommandToPlayer(isPLaying: Boolean) {
         if (isPLaying) {
             Intent(applicationContext, PlayerService::class.java).also {
-                it.action = PlayerService.Action.START.toString()
+                it.action = PlayerService.Action.PLAY.toString()
                 startService(it)
             }
         } else {
@@ -119,5 +141,11 @@ class MainActivity : AppCompatActivity() {
             it.putExtra("song_resource_id", song.resId)
             startService(it)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalBroadcastManager.getInstance(applicationContext)
+            .unregisterReceiver(notificationActionReceiver)
     }
 }
