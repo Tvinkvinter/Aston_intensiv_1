@@ -65,14 +65,11 @@ class PlayerService : Service() {
         ) NotificationManagerCompat.from(this).notify(1, notification)
     }
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
-        stopSelf()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        audioPlayer.stop()
+    private fun sendEventToViewModel(action: Action) {
+        val intent = Intent(PLAYER_ACTION).apply {
+            putExtra(MainActivity.ACTION_EXTRA_KEY, action.toString())
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     private fun createNotification(isPlaying: Boolean): Notification {
@@ -145,11 +142,14 @@ class PlayerService : Service() {
 
     }
 
-    private fun sendEventToViewModel(action: Action) {
-        val intent = Intent(PLAYER_ACTION).apply {
-            putExtra(MainActivity.ACTION_EXTRA_KEY, action.toString())
-        }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        audioPlayer.stop()
     }
 
     enum class Action {
