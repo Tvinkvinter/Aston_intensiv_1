@@ -20,14 +20,15 @@ class PlayerService : Service() {
 
     private val audioPlayer = AudioPlayer(this)
     private var isInitialized = false
+    private var currentSong: Song? = null
 
     override fun onBind(intent: Intent): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             Action.PLAY.toString() -> {
-                val song = IntentCompat.getParcelableExtra(intent, "song", Song::class.java)
-                if (song != null) play(song)
+                currentSong = IntentCompat.getParcelableExtra(intent, "song", Song::class.java)
+                if (currentSong != null) play(currentSong!!)
                 else throw IllegalArgumentException("Required data 'song_resource_id' is missing in the Intent extras")
             }
 
@@ -129,8 +130,8 @@ class PlayerService : Service() {
         }
         return Notification.Builder(this, "player_channel")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Audio Player")
-            .setContentText(if (isPlaying) "Playing..." else "Paused")
+            .setContentTitle(currentSong?.name)
+            .setContentText(currentSong?.author)
             .setOngoing(isPlaying)
             .addAction(prevAction)
             .addAction(playPauseAction)
